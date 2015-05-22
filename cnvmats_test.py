@@ -73,12 +73,12 @@ class TestFlip(unittest.TestCase):
         self.assertTrue(np.all(y == z))
         self.assertTrue(np.all(x == cnvmats.flip(y)))
         
-class TestCnvMat(unittest.TestCase):
+class TestCircMat(unittest.TestCase):
     
     def test_shapes_Ax(self):
         sa, sx = (3,3), (7,7)
         a = np.random.random(sa)
-        A = cnvmats.CnvMat(a, sx)
+        A = cnvmats.CircMat(a, sx)
         self.assertEquals(A.sh, sx)
         Atp = A.tp()
         self.assertEquals(Atp.f_spat.shape, sa)
@@ -89,7 +89,7 @@ class TestCnvMat(unittest.TestCase):
     def test_shapes_Xa(self):
         sa, sx = (3,3), (7,7)
         x = np.random.random(sx)
-        X = cnvmats.CnvMat(x, sa)
+        X = cnvmats.CircMat(x, sa)
         self.assertEquals(X.sh, sx)
         Xtp = X.tp()
         self.assertEquals(Xtp.f_spat.shape, sx)
@@ -98,13 +98,13 @@ class TestCnvMat(unittest.TestCase):
         self.assertEquals(Xtp.tp(), X)
     
     def test_lena_Ax(self):
-        # https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Circular_convolution_theorem_and_cross-correlation_theorem
-        sa = (40,40)
+        sa = (30,30)
         x = cv2.imread('lena.png', 0)
         a = np.ones(sa) / np.prod(sa)
-        A = cnvmats.CnvMat(a, x.shape)
+        A = cnvmats.CircMat(a, x.shape)
         y = (A * x).real
         plt.imshow(y, 'gray')
+        plt.title('circ')
         plt.show()
 
 if __name__ == '__main__':

@@ -40,22 +40,34 @@ def flip(x):
         return np.fliplr(x_flipped_ud)
     else:
         raise ValueError('ndim must be 1 or 2')
+
+def cnvmat(f_spat, sg, mode):
+    if mode == 'circ':
+        return CircMat(f_spat, sg)
+    elif mode == 'valid':
+        return ValidMat(f_spat, sg)
+    elif mode == 'full':
+        return FullMat(f_spat, sg)
+    else:
+        raise ValueError('unknown mode: "%s"' % mode)
         
-class CnvMat:
-    """Implements matrix that performs circular convolution."""
+class CircMat:
+    """Represents matrix that performs circular convolution."""
     
     def __init__(self, f_spat, sg, sh=None):
         self.f_spat = f_spat
         self.sg = sg
         self.sh = sh if sh is not None else max(f_spat.shape, sg)
-        if np.all(f_spat.shape <= sg):
+        if np.all(np.array(f_spat.shape) <= np.array(sg)):
             self.f_freq = np.fft.fft2(pad(f_spat, sg))
-        else:
+        elif np.all(np.array(f_spat.shape) >= np.array(sg)):
             self.f_freq = np.fft.fft2(f_spat)
+        else:
+            raise ValueError('shape mismatch')
         
     def __mul__(self, g_spat):
-        assert self.sg == g_spat.shape
-        if np.all(self.f_spat.shape <= self.sg):
+        assert self.sg == g_spat.shape, 'shape mismatch'
+        if self.f_spat.shape <= self.sg:
             g_freq = np.fft.fft2(g_spat)
         else:
             g_freq = np.fft.fft2(pad(g_spat, self.f_spat.shape))
@@ -67,7 +79,7 @@ class CnvMat:
         tp_f_spat = flip(self.f_spat)
         tp_sg = self.sh
         tp_sh = self.sg
-        return CnvMat(tp_f_spat, tp_sg, tp_sh)
+        return CircMat(tp_f_spat, tp_sg, tp_sh)
     
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
@@ -76,5 +88,73 @@ class CnvMat:
             and self.sh == other.sh \
             and np.all(self.f_freq == other.f_freq)
     
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+class ValidMat:
+    """Represents matrix that performs valid convolution."""
+
+    def __init__(self, f_spat, sg):
+        self.circ = CircMat(f_spat, sg)
+        sf = np.array(f_spat.shape)
+        sg = np.array(sg)
+        if np.all(sf <= sg):
+            self.sh = sf-sg+1
+        elif np.all(sf <= sg):
+            self.sh = sg-sf+1
+        else:
+            raise ValueError('shape mismatch')
+
+    def __mul__(self, g_spat):
+        h_circ = self.circ * g_spat
+        h_valid = unpad(h_circ, sh)
+        return h_valid
+
+    def tp(self):
+        tp_f_spat = flip(self.f_spat)
+        tp_sg = self.sh
+        if selff.circ.f_spat.shape <= self.circ.sg:
+            return FullMat(tp_f_spat, tp_sg)
+        else
+            return ValidMat(tp_f_spat, tp_sg)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) \
+            and self.circ == other.circ \
+            and self.sh == other.sh
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+class FullMat:
+    """Represents matrix that performs full convolution."""
+
+    def __init__(self, f_spat, sg):
+        self.sg = sg
+        sf = np.array(f_spat.shape)
+        sg = np.array(sg)
+        if np.all(sf <= sg):
+            sg = sf + sg - 1
+        elif np.all(sf >= sg):
+            sh = sf + sg - 1
+            f_spat = pad(f_spat, sh)
+        else:
+            raise ValueError('shape mismatch')
+        self.circ = CircMat(f_spat, tuple(sg.tolist()))
+
+    def __mul__(self, g_spat):
+        assert self.sg == g_spat.shape, 'shape mismatch'
+        if self.sg != self.circ.sg:
+            g_spat = pad(g_spat, self.circ.sg)
+        return self.circ * g_spat
+
+    def tp(self):
+        pass
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) \
+            and self.circ == other.circ \
+            and self.sh == other.sh
+
     def __ne__(self, other):
         return not self.__eq__(other)
