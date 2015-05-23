@@ -6,6 +6,9 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
+def img_equals(actual, expected):
+    return np.linalg.norm(actual - expected, ord='fro') < np.prod(actual.shape)
+
 class TestPad(unittest.TestCase):
 
     def test_sx_leq_sy(self):
@@ -102,10 +105,18 @@ class TestCircMat(unittest.TestCase):
         x = cv2.imread('lena.png', 0)
         a = np.ones(sa) / np.prod(sa)
         A = cnvmats.CircMat(a, x.shape)
-        y = (A * x).real
-        plt.imshow(y, 'gray')
-        plt.title('circ')
-        plt.show()
+        y = (A*x).real
+        y_expected = cv2.imread('lena-box20-circ.png', 0)
+        self.assertTrue(img_equals(y, y_expected))
+    
+    def test_lena_Xa(self):
+        sa = (30,30)
+        x = cv2.imread('lena.png', 0)
+        a = np.ones(sa) / np.prod(sa)
+        X = cnvmats.CircMat(x, a.shape)
+        y = (X*a).real
+        y_expected = cv2.imread('lena-box20-circ.png', 0)
+        self.assertTrue(img_equals(y, y_expected))
 
 if __name__ == '__main__':
     unittest.main()
