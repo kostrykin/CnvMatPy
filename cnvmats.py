@@ -96,6 +96,7 @@ class ValidMat:
 
     def __init__(self, f_spat, sg):
         self.circ = CircMat(f_spat, sg)
+        self.sg = sg
         sf = np.array(f_spat.shape)
         sg = np.array(sg)
         if np.all(sf <= sg):
@@ -113,14 +114,15 @@ class ValidMat:
     def tp(self):
         tp_f_spat = flip(self.f_spat)
         tp_sg = self.sh
-        if selff.circ.f_spat.shape <= self.circ.sg:
+        if self.circ.f_spat.shape <= self.circ.sg:
             return FullMat(tp_f_spat, tp_sg)
-        else
+        else:
             return ValidMat(tp_f_spat, tp_sg)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
             and self.circ == other.circ \
+            and self.sg == other.sg \
             and self.sh == other.sh
 
     def __ne__(self, other):
@@ -134,13 +136,14 @@ class FullMat:
         sf = np.array(f_spat.shape)
         sg = np.array(sg)
         if np.all(sf <= sg):
-            sg = sf + sg - 1
+            circ_sg = tuple(sf+sg-1)
+            self.sh = circ_sg
         elif np.all(sf >= sg):
-            sh = sf + sg - 1
-            f_spat = pad(f_spat, sh)
+            self.sh = sf + sg - 1
+            f_spat = pad(f_spat, self.sh)
         else:
             raise ValueError('shape mismatch')
-        self.circ = CircMat(f_spat, tuple(sg.tolist()))
+        self.circ = CircMat(f_spat, circ_sg)
 
     def __mul__(self, g_spat):
         assert self.sg == g_spat.shape, 'shape mismatch'
@@ -149,11 +152,17 @@ class FullMat:
         return self.circ * g_spat
 
     def tp(self):
-        pass
+        tp_f_spat = flip(self.circ.f_spat)
+        tp_sg = self.sh
+        if self.circ.f_spat.shape <= self.circ.sg:
+            return ValidMat(tp_f_spat, tp_sg)
+        else:
+            return FullMat(tp_f_spat, tp_sg)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
             and self.circ == other.circ \
+            and self.sg == other.sg \
             and self.sh == other.sh
 
     def __ne__(self, other):
