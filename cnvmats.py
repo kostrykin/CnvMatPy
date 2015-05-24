@@ -17,16 +17,19 @@ def pad(x, sy):
         raise ValueError('ndim must be 1 or 2')
     return y
     
-def unpad(x, sy):
+def unpad(x, sy, offset=None):
     """Returns copy of 'x' that is cropped to 'sx' size."""
     
     sy = np.array(sy)
-    assert x.ndim == np.size(sy), 'ndim mismatch: %d == %d' % (x.ndim, np.size(sy))
+    offset = np.array(offset) if offset is not None else np.zeros(sy.size)
+    assert x.ndim == sy.size, 'ndim mismatch: %d == %d' % (x.ndim, sy.size)
     assert np.all(np.array(x.shape) >= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
+    assert x.ndim == offset.size, 'ndim mismatch: %d == %d' % (x.ndim, offset.size)
+    p0, p1 = offset, offset+sy
     if x.ndim == 1:
-        return x[:sy[0]]
+        return x[p0[0]:p1[0]]
     elif x.ndim == 2:
-        return x[:sy[0], :sy[1]]
+        return x[p0[0]:p1[0], p0[1]:p1[1]]
     else:
         raise ValueError('ndim must be 1 or 2')
     
@@ -96,25 +99,27 @@ class ValidMat:
 
     def __init__(self, f_spat, sg):
         self.circ = CircMat(f_spat, sg)
+        self.sf = f_spat.shape
         self.sg = sg
-        sf = np.array(f_spat.shape)
+        sf = np.array(self.sf)
         sg = np.array(sg)
         if np.all(sf <= sg):
-            self.sh = sf-sg+1
-        elif np.all(sf <= sg):
-            self.sh = sg-sf+1
+            self.sh = tuple(sg-sf+1)
+        elif np.all(sf >= sg):
+            self.sh = tuple(sf-sg+1)
         else:
             raise ValueError('shape mismatch')
 
     def __mul__(self, g_spat):
         h_circ = self.circ * g_spat
-        h_valid = unpad(h_circ, sh)
+        offset = np.add(self.sf if self.sf <= self.sg else self.sg, -1)
+        h_valid = unpad(h_circ, self.sh, offset)
         return h_valid
 
     def tp(self):
-        tp_f_spat = flip(self.f_spat)
+        tp_f_spat = flip(self.circ.f_spat)
         tp_sg = self.sh
-        if self.circ.f_spat.shape <= self.circ.sg:
+        if self.sf <= self.sg:
             return FullMat(tp_f_spat, tp_sg)
         else:
             return ValidMat(tp_f_spat, tp_sg)
@@ -122,6 +127,7 @@ class ValidMat:
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
             and self.circ == other.circ \
+            and self.sf == other.sf \
             and self.sg == other.sg \
             and self.sh == other.sh
 
@@ -132,8 +138,9 @@ class FullMat:
     """Represents matrix that performs full convolution."""
 
     def __init__(self, f_spat, sg):
+        self.sf = f_spat.shape
         self.sg = sg
-        sf = np.array(f_spat.shape)
+        sf = np.array(self.sf)
         sg = np.array(sg)
         if np.all(sf <= sg):
             circ_sg = tuple(sf+sg-1)
@@ -162,6 +169,7 @@ class FullMat:
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
             and self.circ == other.circ \
+            and self.sf == other.sf \
             and self.sg == other.sg \
             and self.sh == other.sh
 
