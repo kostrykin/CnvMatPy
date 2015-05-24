@@ -118,11 +118,10 @@ class ValidMat:
 
     def tp(self):
         tp_f_spat = flip(self.circ.f_spat)
-        tp_sg = self.sh
         if self.sf <= self.sg:
-            return FullMat(tp_f_spat, tp_sg)
+            return FullMat(tp_f_spat, self.sh)
         else:
-            return ValidMat(tp_f_spat, tp_sg)
+            return ValidMat(tp_f_spat, self.sh)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
@@ -142,12 +141,12 @@ class FullMat:
         self.sg = sg
         sf = np.array(self.sf)
         sg = np.array(sg)
+        self.sh = tuple(sf+sg-1)
         if np.all(sf <= sg):
-            circ_sg = tuple(sf+sg-1)
-            self.sh = circ_sg
+            circ_sg = self.sh
         elif np.all(sf >= sg):
-            self.sh = sf + sg - 1
             f_spat = pad(f_spat, self.sh)
+            circ_sg = self.sg
         else:
             raise ValueError('shape mismatch')
         self.circ = CircMat(f_spat, circ_sg)
@@ -159,12 +158,8 @@ class FullMat:
         return self.circ * g_spat
 
     def tp(self):
-        tp_f_spat = flip(self.circ.f_spat)
-        tp_sg = self.sh
-        if self.circ.f_spat.shape <= self.circ.sg:
-            return ValidMat(tp_f_spat, tp_sg)
-        else:
-            return FullMat(tp_f_spat, tp_sg)
+        tp_f_spat = flip(unpad(self.circ.f_spat, self.sf))
+        return ValidMat(tp_f_spat, self.sh)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \

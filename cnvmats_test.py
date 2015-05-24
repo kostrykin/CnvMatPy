@@ -152,13 +152,53 @@ class TestValidMat(unittest.TestCase):
         self.assertTrue(img_equals(y, y_expected))
     
     def test_lena_Xa(self):
-        pass
         sa = (30,30)
         x = cv2.imread('lena.png', 0)
         a = np.ones(sa) / np.prod(sa)
         X = cnvmats.cnvmat(x, a.shape, 'valid')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-valid.png', 0)
+        self.assertTrue(img_equals(y, y_expected))
+        
+class TestFullMat(unittest.TestCase):
+    
+    def test_shapes_Ax(self):
+        sa, sx, sy = (3,3), (7,7), (9,9)
+        a = np.random.random(sa)
+        A = cnvmats.cnvmat(a, sx, 'full')
+        self.assertEquals(A.sh, sy)
+        Atp = A.tp()
+        self.assertEquals(Atp.circ.f_spat.shape, sa)
+        self.assertEquals(Atp.sg, sy)
+        self.assertEquals(Atp.sh, sx)
+        self.assertEquals(Atp.tp(), A)
+    
+    def test_shapes_Xa(self):
+        sa, sx, sy = (3,3), (7,7), (9,9)
+        x = np.random.random(sx)
+        X = cnvmats.cnvmat(x, sa, 'full')
+        self.assertEquals(X.sh, sy)
+        Xtp = X.tp()
+        self.assertEquals(Xtp.sg, sy)
+        self.assertEquals(Xtp.sh, sa)
+        self.assertEquals(Xtp.tp(), X)
+    
+    def test_lena_Ax(self):
+        sa = (30,30)
+        x = cv2.imread('lena.png', 0)
+        a = np.ones(sa) / np.prod(sa)
+        A = cnvmats.cnvmat(a, x.shape, 'full')
+        y = (A*x).real
+        y_expected = cv2.imread('lena-box30-full.png', 0)
+        self.assertTrue(img_equals(y, y_expected))
+    
+    def test_lena_Xa(self):
+        sa = (30,30)
+        x = cv2.imread('lena.png', 0)
+        a = np.ones(sa) / np.prod(sa)
+        X = cnvmats.cnvmat(x, a.shape, 'full')
+        y = (X*a).real
+        y_expected = cv2.imread('lena-box30-full.png', 0)
         self.assertTrue(img_equals(y, y_expected))
 
 if __name__ == '__main__':
