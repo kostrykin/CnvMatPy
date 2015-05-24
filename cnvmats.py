@@ -59,21 +59,22 @@ class CircMat:
     
     def __init__(self, f_spat, sg, sh=None):
         self.f_spat = f_spat
+        self.sf = f_spat.shape
         self.sg = sg
-        self.sh = sh if sh is not None else max(f_spat.shape, sg)
-        if np.all(np.array(f_spat.shape) <= np.array(sg)):
+        self.sh = sh if sh is not None else max(self.sf, sg)
+        if np.all(np.array(self.sf) <= np.array(sg)):
             self.f_freq = np.fft.fft2(pad(f_spat, sg))
-        elif np.all(np.array(f_spat.shape) >= np.array(sg)):
+        elif np.all(np.array(self.sf) >= np.array(sg)):
             self.f_freq = np.fft.fft2(f_spat)
         else:
             raise ValueError('shape mismatch')
         
     def __mul__(self, g_spat):
         assert self.sg == g_spat.shape, 'shape mismatch'
-        if self.f_spat.shape <= self.sg:
+        if self.sf <= self.sg:
             g_freq = np.fft.fft2(g_spat)
         else:
-            g_freq = np.fft.fft2(pad(g_spat, self.f_spat.shape))
+            g_freq = np.fft.fft2(pad(g_spat, self.sf))
         h_freq = np.multiply(self.f_freq, g_freq)
         h_spat = unpad(np.fft.ifft2(h_freq), self.sh)
         return h_spat
