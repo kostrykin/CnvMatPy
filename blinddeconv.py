@@ -1,8 +1,19 @@
 import numpy as np
-import cv2
 import cnvmats
 import sys
 from matplotlib import pyplot as plt
+from PIL import Image, ImageSequence
+
+def progress(msg, progress_min, progress_max, progress_val):
+    progress_relative = (progress_val - progress_min) / float(progress_max - progress_min)
+    progress_percentage = 100 * progress_relative
+    text = '%5.1f%% %s' % (progress_percentage, msg)
+    sys.stdout.write(text)
+    if progress_val == progress_max:
+        sys.stdout.write('\n')
+    else:
+        sys.stdout.write('\b'*len(text))
+        sys.stdout.flush()
 
 class BlindDeconv:
 
@@ -34,6 +45,7 @@ class BlindDeconv:
             (x_i, a_i) = self.step(x_last, y_i)
             x.append(x_i)
             a.append(a_i)
+            progress('blind deconvolution', 0, steps_count, i+1)
         return (x,a)
 
     def mult_update(self, F, Ftp, g, h0):
@@ -50,8 +62,15 @@ if __name__ == '__main__':
         print('USAGE: %s <y>') % sys.argv[0]
     else:
         filename = sys.argv[1]
-        y = cv2.imread(filename, 0)
+        print('Opening %s... ' % filename)
+        im = Image.open(filename)
+        y = []
+        for frame in ImageSequence.Iterator(im):
+            np_frame = np.array(frame.getdata(), np.uint16).reshape(im.size[1], im.size[0])
+            y.append(np_frame)
+        print('Read %d frames.' % len(y))
         bd = BlindDeconv((30,30), 'circ', iters_count=2)
-        (x,a) = bd.batch(y, [y])
+        (x,a) = bd.batch(y[-1], y)
         plt.imshow(x[-1], 'gray')
+        plt.colorbar()
         plt.show()
