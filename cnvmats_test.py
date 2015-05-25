@@ -4,24 +4,25 @@ import cnvmats
 import unittest
 import numpy as np
 import cv2
-import scipy.ndimage.filters as filters
 from matplotlib import pyplot as plt
 
-def img_equals(actual, expected):
-    return np.linalg.norm(actual - expected, ord='fro') < np.prod(actual.shape)
+def img_equals(actual, expected, max_avg_pxl_err=1e-3):
+    return np.linalg.norm(actual - expected, ord='fro') <= max_avg_pxl_err * np.prod(actual.shape)
 
 class ImgCompTestCase(unittest.TestCase):
 
-    def assertEqualImg(self, actual, expected, hint='', interp='none'):
-        ok = img_equals(actual, expected)
+    def assertEqualImg(self, actual, expected, hint='', interp='none', max_avg_pxl_err=1e-3):
+        ok = img_equals(actual, expected, max_avg_pxl_err)
         if not ok:
             plt.figure('Failure').suptitle(hint, fontsize=20)
             plt.subplot(1,2,1)
             plt.title('actual')
             plt.imshow(actual, 'gray', interpolation=interp)
+            plt.colorbar()
             plt.subplot(1,2,2)
             plt.title('expected')
             plt.imshow(expected, 'gray', interpolation=interp)
+            plt.colorbar()
             plt.show()
         self.assertTrue(ok, '%s failed' % hint)
 
@@ -91,6 +92,20 @@ class TestFlip(unittest.TestCase):
             z[p] = (sx[0] - p[0] - 1) + (sx[1] - p[1] - 1) * sx[0]
         self.assertTrue(np.all(y == z))
         self.assertTrue(np.all(x == cnvmats.flip(y)))
+
+class TestCircShift(unittest.TestCase):
+    
+    def test(self):
+        sx = (3,3)
+        x = np.zeros(sx)
+        for p in np.ndindex(sx):
+            x[p] = p[0] + p[1] * sx[0]
+        y = cnvmats.circshift(x, +1)
+        z = np.zeros(sx)
+        for p in np.ndindex(sx):
+            z[p] = (p[0] - 1) % sx[0] + ((p[1] - 1) % sx[1]) * sx[0]
+        self.assertTrue(np.all(y == z))
+        self.assertTrue(np.all(x == cnvmats.circshift(y, -1)))
         
 class TestCircMat(ImgCompTestCase):
     
@@ -100,10 +115,8 @@ class TestCircMat(ImgCompTestCase):
         A = cnvmats.cnvmat(a, sx, 'circ')
         self.assertEquals(A.sh, sx)
         Atp = A.tp()
-        self.assertEquals(Atp.f_spat.shape, sa)
         self.assertEquals(Atp.sg, sx)
         self.assertEquals(Atp.sh, sx)
-        self.assertEquals(Atp.tp(), A)
     
     def test_shapes_Xa(self):
         sa, sx = (3,3), (7,7)
@@ -123,7 +136,7 @@ class TestCircMat(ImgCompTestCase):
         A = cnvmats.cnvmat(a, x.shape, 'circ')
         y = (A*x).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
-        self.assertTrue(img_equals(y, y_expected))
+        self.assertEqualImg(y, y_expected, '$Ax$ circ')
     
     def test_lena_Xa(self):
         sa = (30,30)
@@ -132,7 +145,7 @@ class TestCircMat(ImgCompTestCase):
         X = cnvmats.cnvmat(x, a.shape, 'circ')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
-        self.assertTrue(img_equals(y, y_expected))
+        self.assertEqualImg(y, y_expected, '$Xa$ circ')
 
     def test_against_toarray(self):
         sa, sx = (3,3), (10,10)
@@ -145,9 +158,11 @@ class TestCircMat(ImgCompTestCase):
         Atpy_actual = (A.tp()*y).real
         Atpy_expected = A.toarray().T.dot(y.flatten()).reshape(sx).real
         self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ circ')
+        self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ circ')
         self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ circ')
+        self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ circ', max_avg_pxl_err=0)
         
-class TestValidMat(unittest.TestCase):
+class TestValidMat(ImgCompTestCase):
     
     def test_shapes_Ax(self):
         sa, sx, sy = (3,3), (7,7), (5,5)
@@ -178,7 +193,7 @@ class TestValidMat(unittest.TestCase):
         A = cnvmats.cnvmat(a, x.shape, 'valid')
         y = (A*x).real
         y_expected = cv2.imread('lena-box30-valid.png', 0)
-        self.assertTrue(img_equals(y, y_expected))
+        self.assertEqualImg(y, y_expected, '$Ax$ valid')
     
     def test_lena_Xa(self):
         sa = (30,30)
@@ -187,9 +202,9 @@ class TestValidMat(unittest.TestCase):
         X = cnvmats.cnvmat(x, a.shape, 'valid')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-valid.png', 0)
-        self.assertTrue(img_equals(y, y_expected))
+        self.assertEqualImg(y, y_expected, '$Xa$ valid')
         
-class TestFullMat(unittest.TestCase):
+class TestFullMat(ImgCompTestCase):
     
     def test_shapes_Ax(self):
         sa, sx, sy = (3,3), (7,7), (9,9)
@@ -219,7 +234,7 @@ class TestFullMat(unittest.TestCase):
         A = cnvmats.cnvmat(a, x.shape, 'full')
         y = (A*x).real
         y_expected = cv2.imread('lena-box30-full.png', 0)
-        self.assertTrue(img_equals(y, y_expected))
+        self.assertEqualImg(y, y_expected, '$Ax$ full')
     
     def test_lena_Xa(self):
         sa = (30,30)
@@ -228,7 +243,7 @@ class TestFullMat(unittest.TestCase):
         X = cnvmats.cnvmat(x, a.shape, 'full')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-full.png', 0)
-        self.assertTrue(img_equals(y, y_expected))
+        self.assertEqualImg(y, y_expected, '$Xa$ full')
 
 if __name__ == '__main__':
     unittest.main()

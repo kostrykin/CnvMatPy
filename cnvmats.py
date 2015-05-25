@@ -6,6 +6,7 @@ def pad(x, sy, offset=None):
     """Returns copy of 'x' that is zero-padded to 'sy' size."""
     
     sy = np.array(sy)
+    #offset = np.array(offset) if offset is not None else (sy - np.array(x.shape)) / 2
     offset = np.array(offset) if offset is not None else np.zeros(sy.size)
     assert x.ndim == np.size(sy), 'ndim mismatch: %d == %d' % (x.ndim, np.size(sy))
     assert np.all(np.array(x.shape) <= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
@@ -24,6 +25,7 @@ def unpad(x, sy, offset=None):
     """Returns copy of 'x' that is cropped to 'sx' size."""
     
     sy = np.array(sy)
+    #offset = np.array(offset) if offset is not None else (np.array(x.shape) - sy) / 2
     offset = np.array(offset) if offset is not None else np.zeros(sy.size)
     assert x.ndim == sy.size, 'ndim mismatch: %d == %d' % (x.ndim, sy.size)
     assert np.all(np.array(x.shape) >= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
@@ -46,6 +48,16 @@ def flip(x):
         return np.fliplr(x_flipped_ud)
     else:
         raise ValueError('ndim must be 1 or 2')
+
+def circshift(x, shift):
+    """Rolls 'x' by 'shift' along each axis."""
+    if isinstance(shift, tuple) or isinstance(shift, list):
+        assert x.ndim == len(shift), 'ndim mismatch: %d == %d' % (x.ndim, len(shift))
+    else:
+        shift = [shift]*x.ndim
+    for d in range(x.ndim):
+        x = np.roll(x, shift[d], axis=d)
+    return x
 
 def cnvmat(f_spat, sg, mode):
     if mode == 'circ':
@@ -101,7 +113,9 @@ class CircMat(CnvMat):
         return h_spat
         
     def tp(self):
-        tp_f_spat = flip(self.f_spat)
+        f_spat_padded = self.f_spat if self.sf >= self.sg else pad(self.f_spat, self.sg)
+        tp_f_spat = circshift(flip(f_spat_padded), +1)
+        #tp_f_spat = flip(self.f_spat)
         tp_sg = self.sh
         tp_sh = self.sg
         return CircMat(tp_f_spat, tp_sg, tp_sh)
