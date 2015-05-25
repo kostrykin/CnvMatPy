@@ -4,6 +4,9 @@ import sys
 import cv2
 from matplotlib import pyplot as plt
 
+# based on
+# ONLINE BLIND DECONVOLUTION FOR ASTRONOMICAL IMAGES, Harmeling et al., 2009
+
 def progress(msg, progress_min, progress_max, progress_val):
     progress_relative = (progress_val-progress_min) / float(progress_max-progress_min)
     progress_percentage = 100 * progress_relative
@@ -17,23 +20,23 @@ def progress(msg, progress_min, progress_max, progress_val):
 
 class BlindDeconv:
 
-    def __init__(self, sa, mode, iters_count=1, epsilon=1e-8):
+    def __init__(self, sa, mode, itrs_count=1, epsilon=1e-8):
         self.sa = sa
         self.mode = mode
-        self.iters_count = iters_count
+        self.itrs_count = itrs_count
         self.epsilon = epsilon
 
     def step(self, x, y):
         sa = self.sa
         sx = x.shape
         a = np.ones(sa)
-        for iter_idx in range(self.iters_count):
+        for iter_idx in range(self.itrs_count):
             A = cnvmats.cnvmat(a, sx, self.mode)
             X = cnvmats.cnvmat(x, sa, self.mode)
             a_mult_update = self.mult_update(X, X.tp(), y, a)
             x_mult_update = self.mult_update(A, A.tp(), y, x)
-            x = np.multiply(x, x_mult_update)
-            a = np.multiply(a, a_mult_update)
+            x = x * x_mult_update
+            a = a * a_mult_update
         return (x,a)
 
     def batch(self, x0, y, steps_count=None):
@@ -46,6 +49,7 @@ class BlindDeconv:
             x.append(x_i)
             a.append(a_i)
             progress('blind deconvolution', 0, steps_count, i+1)
+            x_last = x_i
         return (x,a)
 
     def mult_update(self, F, Ftp, g, h0):
@@ -57,29 +61,38 @@ def non_neg(x):
     x[x<0] = 0
     return x
 
-def run(filename, n, m, sa, mode):
+def sq(x):
+    return x*x
+
+def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
     x_true = cv2.imread(filename, 0)
-    y = [None]*n
+    y = [None]*y_count
     sx = x_true.shape
-    for i in range(n):
-        msg = 'creating %d input images from %s' % (n, filename)
-        progress(msg, 0, n-1, i)
+    for i in range(y_count):
+        msg = 'creating %d input images from %s' % (y_count, filename)
+        progress(msg, 0, y_count-1, i)
         a = np.random.random(sa)
         a = a / a.sum()
         A = cnvmats.cnvmat(a, sx, mode)
-        y[i] = (A * x_true).real
-    sy = y[0].shape
+        sy = A.sh
+        y[i] = (A * x_true).real + noise_s2 * np.random.randn(*sy)
     x0 = np.ones(sx)
     x0[:sy[0], :sy[1]] = y[-1]
-    bd = BlindDeconv(sa, mode, iters_count=2)
-    (x,a) = bd.batch(x0, y, steps_count=m)
-    plt.subplot(1,2,1)
+    bd = BlindDeconv(sa, mode, itrs_count=itrs_count)
+    (x,a) = bd.batch(x0, y, steps_count=steps_count)
+    rms = [np.sqrt(sq(x_i-x_true).sum() / np.prod(x_i.shape)) for x_i in x]
+    plt.subplot(1,3,1)
     plt.imshow(x0, 'gray')
     plt.title('$x_0$')
-    plt.subplot(1,2,2)
+    plt.subplot(1,3,2)
     plt.imshow(x[-1], 'gray')
     plt.title('$x_{%d}$' % len(x))
+    plt.subplot(1,3,3)
+    plt.semilogx(np.array(range(len(rms)))+1, rms)
+    plt.xlabel('iteration')
+    plt.title('RMS')
+    plt.grid()
     plt.show()
 
-run('lena.png', 50, 100, (20,20), 'circ')
+run('lena.png', 33, 100, 2, (30,30), 10, 'circ')
 
