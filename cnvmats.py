@@ -61,8 +61,21 @@ def check_shape(actual, expected):
     if actual != expected:
         msg = 'shape mismatch, %s but expected %s' % (str(actual), str(expected))
         raise ValueError(msg)
-        
-class CircMat:
+
+class CnvMat:
+    """Base class of objects that represent convolution/correlation matrices."""
+    
+    def toarray(self):
+        array = np.zeros((np.prod(self.sh), np.prod(self.sg)), 'complex')
+        g = np.zeros(self.sg)
+        for k in range(np.prod(g.shape)):
+            g.flat[k] = 1
+            g_freq = np.fft.fft2(g)
+            array[:,k] = np.fft.ifft2(g_freq * self.f_freq).flatten()
+            g.flat[k] = 0
+        return array
+
+class CircMat(CnvMat):
     """Represents matrix that performs circular convolution."""
     
     def __init__(self, f_spat, sg, sh=None):
@@ -103,7 +116,7 @@ class CircMat:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-class ValidMat:
+class ValidMat(CnvMat):
     """Represents matrix that performs valid convolution."""
 
     def __init__(self, f_spat, sg):
@@ -142,7 +155,7 @@ class ValidMat:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-class FullMat:
+class FullMat(CnvMat):
     """Represents matrix that performs full convolution."""
 
     def __init__(self, f_spat, sg):
