@@ -18,9 +18,7 @@ for mode_idx in range(len(modes)):
     A = cnvmats.cnvmat(a, sx, mode)
 
     plt.subplot(2, len(modes), 1+len(modes)+mode_idx)
-    plt.imshow((A*np.eye(A.sg[0])).real, 'gray', interpolation='none')
+    plt.imshow(A.toarray().real, 'gray', interpolation='none')
     plt.title('$A_{%s}$' % mode)
-    plt.xticks(np.arange(0, A.sh[0], 1))
-    plt.yticks(np.arange(0, A.sh[0], 1))
 
 plt.show()

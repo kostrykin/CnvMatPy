@@ -1,4 +1,4 @@
-# CnvMatPy
+# cnvmats.py
 
 This repository contains the `cnvmats` Python 2.7 module. It provides a few classes, whose instances represent convolution and/or correlation matrices, like `A` and `X` in `Ax = Xa = a*x`, respectively. Besides of multiplication with numpy arrays, the classes of `A` and `X` support transposition using their `tp` method. The convolution is implemented in frequency domain.
 
