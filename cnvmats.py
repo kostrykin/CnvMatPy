@@ -6,7 +6,6 @@ def pad(x, sy, offset=None):
     """Returns copy of 'x' that is zero-padded to 'sy' size."""
     
     sy = np.array(sy)
-    #offset = np.array(offset) if offset is not None else (sy - np.array(x.shape)) / 2
     offset = np.array(offset) if offset is not None else np.zeros(sy.size)
     assert x.ndim == np.size(sy), 'ndim mismatch: %d == %d' % (x.ndim, np.size(sy))
     assert np.all(np.array(x.shape) <= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
@@ -25,7 +24,6 @@ def unpad(x, sy, offset=None):
     """Returns copy of 'x' that is cropped to 'sx' size."""
     
     sy = np.array(sy)
-    #offset = np.array(offset) if offset is not None else (np.array(x.shape) - sy) / 2
     offset = np.array(offset) if offset is not None else np.zeros(sy.size)
     assert x.ndim == sy.size, 'ndim mismatch: %d == %d' % (x.ndim, sy.size)
     assert np.all(np.array(x.shape) >= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
@@ -82,8 +80,7 @@ class CnvMat:
         g = np.zeros(self.sg)
         for k in range(np.prod(g.shape)):
             g.flat[k] = 1
-            g_freq = np.fft.fft2(g)
-            array[:,k] = np.fft.ifft2(g_freq * self.f_freq).flatten()
+            array[:,k] = (self * g).flatten()
             g.flat[k] = 0
         return array
 
@@ -115,7 +112,6 @@ class CircMat(CnvMat):
     def tp(self):
         f_spat_padded = self.f_spat if self.sf >= self.sg else pad(self.f_spat, self.sg)
         tp_f_spat = circshift(flip(f_spat_padded), +1)
-        #tp_f_spat = flip(self.f_spat)
         tp_sg = self.sh
         tp_sh = self.sg
         return CircMat(tp_f_spat, tp_sg, tp_sh)

@@ -146,21 +146,6 @@ class TestCircMat(ImgCompTestCase):
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
         self.assertEqualImg(y, y_expected, '$Xa$ circ')
-
-    def test_against_toarray(self):
-        sa, sx = (3,3), (10,10)
-        a, x = np.random.random(sa), np.round(255*np.random.random(sx))
-        A = cnvmats.cnvmat(a, sx, 'circ')
-        sy = A.sh
-        Ax_actual = (A*x).real
-        Ax_expected = A.toarray().dot(x.flatten()).reshape(sy).real
-        y = Ax_actual
-        Atpy_actual = (A.tp()*y).real
-        Atpy_expected = A.toarray().T.dot(y.flatten()).reshape(sx).real
-        self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ circ')
-        self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ circ')
-        self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ circ')
-        self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ circ', max_avg_pxl_err=0)
         
 class TestValidMat(ImgCompTestCase):
     
@@ -244,6 +229,45 @@ class TestFullMat(ImgCompTestCase):
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-full.png', 0)
         self.assertEqualImg(y, y_expected, '$Xa$ full')
+
+class TestCnvMat(ImgCompTestCase):
+
+    def setUp(self):
+        self.sa, self.sx = (3,3), (10,10)
+        self.a = np.random.random(self.sa)
+        self.x = np.round(255 * np.random.random(self.sx))
+        self.modes = ('valid', 'full', 'circ')
+
+    def test_Ax_against_toarray(self):
+        a, x, sa, sx = self.a, self.x, self.sa, self.sx
+        for mode in self.modes:
+            A = cnvmats.cnvmat(a, sx, mode)
+            sy = A.sh
+            Ax_actual = (A*x).real
+            Ax_expected = A.toarray().dot(x.flatten()).reshape(sy).real
+            y = Ax_actual
+            Atpy_actual = (A.tp()*y).real
+            Atpy_expected = A.toarray().T.dot(y.flatten()).reshape(sx).real
+            self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ %s' % mode)
+            self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ %s' % mode)
+            self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ %s' % mode)
+            if mode != 'circ':
+                self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ %s' % mode, max_avg_pxl_err=0)
+    
+    def test_Xa_against_toarray(self):
+        a, x, sa, sx = self.a, self.x, self.sa, self.sx
+        for mode in self.modes:
+            X = cnvmats.cnvmat(x, sa, mode)
+            sy = X.sh
+            Xa_actual = (X*a).real
+            Xa_expected = X.toarray().dot(a.flatten()).reshape(sy).real
+            y = Xa_actual
+            Xtpy_actual = (X.tp()*y).real
+            Xtpy_expected = X.toarray().T.dot(y.flatten()).reshape(sa).real
+            self.assertEqualImg(Xa_actual, Xa_expected, '$Xa$ %s' % mode)
+            self.assertEqualImg(X.tp().toarray().real, X.toarray().T.real, '$X^T$ %s' % mode)
+            self.assertEqualImg(Xtpy_actual, Xtpy_expected, '$X^Ty$ %s' % mode)
+            self.assertEqualImg(X.tp().tp().toarray().real, X.toarray().real, '$X^{TT}$ %s' % mode, max_avg_pxl_err=0)
 
 if __name__ == '__main__':
     unittest.main()

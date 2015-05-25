@@ -81,5 +81,5 @@ def run(filename, n, m, sa, mode):
     plt.title('$x_{%d}$' % len(x))
     plt.show()
 
-run('lena.png', 50, 100, (20,20), 'valid')
+run('lena.png', 50, 100, (20,20), 'circ')
 
