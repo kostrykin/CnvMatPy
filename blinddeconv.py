@@ -1,11 +1,11 @@
 import numpy as np
 import cnvmats
 import sys
+import cv2
 from matplotlib import pyplot as plt
-from PIL import Image, ImageSequence
 
 def progress(msg, progress_min, progress_max, progress_val):
-    progress_relative = (progress_val - progress_min) / float(progress_max - progress_min)
+    progress_relative = (progress_val-progress_min) / float(progress_max-progress_min)
     progress_percentage = 100 * progress_relative
     text = '%5.1f%% %s' % (progress_percentage, msg)
     sys.stdout.write(text)
@@ -57,20 +57,29 @@ def non_neg(x):
     x[x<0] = 0
     return x
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('USAGE: %s <y>') % sys.argv[0]
-    else:
-        filename = sys.argv[1]
-        print('Opening %s... ' % filename)
-        im = Image.open(filename)
-        y = []
-        for frame in ImageSequence.Iterator(im):
-            np_frame = np.array(frame.getdata(), np.uint16).reshape(im.size[1], im.size[0])
-            y.append(np_frame)
-        print('Read %d frames.' % len(y))
-        bd = BlindDeconv((30,30), 'circ', iters_count=2)
-        (x,a) = bd.batch(y[-1], y)
-        plt.imshow(x[-1], 'gray')
-        plt.colorbar()
-        plt.show()
+def run(filename, n, m, sa, mode):
+    x_true = cv2.imread(filename, 0)
+    y = [None]*n
+    sx = x_true.shape
+    for i in range(n):
+        msg = 'creating %d input images from %s' % (n, filename)
+        progress(msg, 0, n-1, i)
+        a = np.random.random(sa)
+        a = a / a.sum()
+        A = cnvmats.cnvmat(a, sx, mode)
+        y[i] = (A * x_true).real
+    sy = y[0].shape
+    x0 = np.ones(sx)
+    x0[:sy[0], :sy[1]] = y[-1]
+    bd = BlindDeconv(sa, mode, iters_count=2)
+    (x,a) = bd.batch(x0, y, steps_count=m)
+    plt.subplot(1,2,1)
+    plt.imshow(x0, 'gray')
+    plt.title('$x_0$')
+    plt.subplot(1,2,2)
+    plt.imshow(x[-1], 'gray')
+    plt.title('$x_{%d}$' % len(x))
+    plt.show()
+
+run('lena.png', 50, 100, (20,20), 'valid')
+
