@@ -10,7 +10,7 @@ def pad(x, sy, offset=None):
     assert x.ndim == np.size(sy), 'ndim mismatch: %d == %d' % (x.ndim, np.size(sy))
     assert np.all(np.array(x.shape) <= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
     assert x.ndim == offset.size, 'ndim mismatch: %d == %d' % (x.ndim, offset.size)
-    y = np.zeros(sy)
+    y = np.zeros(sy, x.dtype)
     p0, p1 = offset, offset+np.array(x.shape)
     if x.ndim == 1:
         y[p0[0]:p1[0]] = x
@@ -57,6 +57,11 @@ def cnvmat(f_spat, sg, mode):
     else:
         raise ValueError('unknown mode: "%s"' % mode)
         
+def check_shape(actual, expected):
+    if actual != expected:
+        msg = 'shape mismatch, %s but expected %s' % (str(actual), str(expected))
+        raise ValueError(msg)
+        
 class CircMat:
     """Represents matrix that performs circular convolution."""
     
@@ -73,7 +78,7 @@ class CircMat:
             raise ValueError('shape mismatch')
         
     def __mul__(self, g_spat):
-        assert self.sg == g_spat.shape, 'shape mismatch'
+        check_shape(g_spat.shape, self.sg)
         if self.sf <= self.sg:
             g_freq = np.fft.fft2(g_spat)
         else:
@@ -156,7 +161,7 @@ class FullMat:
         self.circ = CircMat(f_spat, circ_sg)
 
     def __mul__(self, g_spat):
-        assert self.sg == g_spat.shape, 'shape mismatch'
+        check_shape(g_spat.shape, self.sg)
         if self.sg != self.circ.sg:
             g_spat = pad(g_spat, self.circ.sg)
         return self.circ * g_spat
