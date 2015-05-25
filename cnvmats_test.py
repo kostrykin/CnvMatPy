@@ -4,10 +4,26 @@ import cnvmats
 import unittest
 import numpy as np
 import cv2
+import scipy.ndimage.filters as filters
 from matplotlib import pyplot as plt
 
 def img_equals(actual, expected):
     return np.linalg.norm(actual - expected, ord='fro') < np.prod(actual.shape)
+
+class ImgCompTestCase(unittest.TestCase):
+
+    def assertEqualImg(self, actual, expected, hint='', interp='none'):
+        ok = img_equals(actual, expected)
+        if not ok:
+            plt.figure('Failure').suptitle(hint, fontsize=20)
+            plt.subplot(1,2,1)
+            plt.title('actual')
+            plt.imshow(actual, 'gray', interpolation=interp)
+            plt.subplot(1,2,2)
+            plt.title('expected')
+            plt.imshow(expected, 'gray', interpolation=interp)
+            plt.show()
+        self.assertTrue(ok, '%s failed' % hint)
 
 class TestPad(unittest.TestCase):
 
@@ -76,7 +92,7 @@ class TestFlip(unittest.TestCase):
         self.assertTrue(np.all(y == z))
         self.assertTrue(np.all(x == cnvmats.flip(y)))
         
-class TestCircMat(unittest.TestCase):
+class TestCircMat(ImgCompTestCase):
     
     def test_shapes_Ax(self):
         sa, sx = (3,3), (7,7)
@@ -117,6 +133,19 @@ class TestCircMat(unittest.TestCase):
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
         self.assertTrue(img_equals(y, y_expected))
+
+    def test_against_toarray(self):
+        sa, sx = (3,3), (10,10)
+        a, x = np.random.random(sa), np.round(255*np.random.random(sx))
+        A = cnvmats.cnvmat(a, sx, 'circ')
+        sy = A.sh
+        Ax_actual = (A*x).real
+        Ax_expected = A.toarray().dot(x.flatten()).reshape(sy).real
+        y = Ax_actual
+        Atpy_actual = (A.tp()*y).real
+        Atpy_expected = A.toarray().T.dot(y.flatten()).reshape(sx).real
+        self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ circ')
+        self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ circ')
         
 class TestValidMat(unittest.TestCase):
     
