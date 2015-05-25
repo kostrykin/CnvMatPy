@@ -251,8 +251,7 @@ class TestCnvMat(ImgCompTestCase):
             self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ %s' % mode)
             self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ %s' % mode)
             self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ %s' % mode)
-            if mode != 'circ':
-                self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ %s' % mode, max_avg_pxl_err=0)
+            self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ %s' % mode, max_avg_pxl_err=0)
     
     def test_Xa_against_toarray(self):
         a, x, sa, sx = self.a, self.x, self.sa, self.sx
