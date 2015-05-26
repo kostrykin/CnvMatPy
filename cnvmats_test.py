@@ -7,11 +7,11 @@ import cv2
 from matplotlib import pyplot as plt
 
 def img_equals(actual, expected, tolerance=1e-3):
-    return np.linalg.norm(actual - expected, ord='fro') <= tolerance * np.prod(actual.shape)
+    return np.all(np.abs(actual - expected) <= tolerance)
 
 class ImgCompTestCase(unittest.TestCase):
 
-    def assertEqualImg(self, actual, expected, hint='', interp='none', tolerance=1e-3):
+    def assertEqualImg(self, actual, expected, hint='', interp='none', tolerance=1e-8):
         ok = img_equals(actual, expected, tolerance)
         if not ok:
             plt.figure('Failure').suptitle(hint, fontsize=20)
@@ -140,7 +140,7 @@ class TestCircMat(ImgCompTestCase):
         A = cnvmats.cnvmat(a, x.shape, 'circ')
         y = (A*x).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
-        self.assertEqualImg(y, y_expected, '$Ax$ circ')
+        self.assertEqualImg(y, y_expected, '$Ax$ circ', tolerance=1.1)
     
     def test_lena_Xa(self):
         sa = (30,30)
@@ -149,7 +149,7 @@ class TestCircMat(ImgCompTestCase):
         X = cnvmats.cnvmat(x, a.shape, 'circ')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
-        self.assertEqualImg(y, y_expected, '$Xa$ circ')
+        self.assertEqualImg(y, y_expected, '$Xa$ circ', tolerance=1.1)
         
 class TestValidMat(ImgCompTestCase):
     
@@ -182,7 +182,7 @@ class TestValidMat(ImgCompTestCase):
         A = cnvmats.cnvmat(a, x.shape, 'valid')
         y = (A*x).real
         y_expected = cv2.imread('lena-box30-valid.png', 0)
-        self.assertEqualImg(y, y_expected, '$Ax$ valid')
+        self.assertEqualImg(y, y_expected, '$Ax$ valid', tolerance=1.1)
     
     def test_lena_Xa(self):
         sa = (30,30)
@@ -191,7 +191,7 @@ class TestValidMat(ImgCompTestCase):
         X = cnvmats.cnvmat(x, a.shape, 'valid')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-valid.png', 0)
-        self.assertEqualImg(y, y_expected, '$Xa$ valid')
+        self.assertEqualImg(y, y_expected, '$Xa$ valid', tolerance=1.1)
         
 class TestFullMat(ImgCompTestCase):
     
@@ -223,7 +223,7 @@ class TestFullMat(ImgCompTestCase):
         A = cnvmats.cnvmat(a, x.shape, 'full')
         y = (A*x).real
         y_expected = cv2.imread('lena-box30-full.png', 0)
-        self.assertEqualImg(y, y_expected, '$Ax$ full')
+        self.assertEqualImg(y, y_expected, '$Ax$ full', tolerance=1.1)
     
     def test_lena_Xa(self):
         sa = (30,30)
@@ -232,7 +232,7 @@ class TestFullMat(ImgCompTestCase):
         X = cnvmats.cnvmat(x, a.shape, 'full')
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-full.png', 0)
-        self.assertEqualImg(y, y_expected, '$Xa$ full')
+        self.assertEqualImg(y, y_expected, '$Xa$ full', tolerance=1.1)
 
 class TestCnvMat(ImgCompTestCase):
 
@@ -253,7 +253,7 @@ class TestCnvMat(ImgCompTestCase):
             Atpy_actual = (A.tp()*y).real
             Atpy_expected = A.toarray().T.dot(y.flatten()).reshape(sx).real
             self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ %s' % mode)
-            self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ %s' % mode, tolerance=1e-10)
+            self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ %s' % mode)
             self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ %s' % mode)
             self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ %s' % mode, tolerance=0)
     
@@ -268,7 +268,7 @@ class TestCnvMat(ImgCompTestCase):
             Xtpy_actual = (X.tp()*y).real
             Xtpy_expected = X.toarray().T.dot(y.flatten()).reshape(sa).real
             self.assertEqualImg(Xa_actual, Xa_expected, '$Xa$ %s' % mode)
-            self.assertEqualImg(X.tp().toarray().real, X.toarray().T.real, '$X^T$ %s' % mode, tolerance=1e-10)
+            self.assertEqualImg(X.tp().toarray().real, X.toarray().T.real, '$X^T$ %s' % mode)
             self.assertEqualImg(Xtpy_actual, Xtpy_expected, '$X^Ty$ %s' % mode)
             self.assertEqualImg(X.tp().tp().toarray().real, X.toarray().real, '$X^{TT}$ %s' % mode, tolerance=0)
 
