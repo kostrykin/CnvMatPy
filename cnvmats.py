@@ -2,8 +2,8 @@
 
 import numpy as np
 
-def pad(x, sy, offset=None):
-    """Returns copy of 'x' that is zero-padded to 'sy' size."""
+def pad(x, sy, offset=None, val=0):
+    """Returns copy of 'x' that is 'val'-padded to 'sy' size."""
     
     sy = np.array(sy)
     offset = np.array(offset) if offset is not None else np.zeros(sy.size)
@@ -11,6 +11,8 @@ def pad(x, sy, offset=None):
     assert np.all(np.array(x.shape) <= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
     assert x.ndim == offset.size, 'ndim mismatch: %d == %d' % (x.ndim, offset.size)
     y = np.zeros(sy, x.dtype)
+    if val != 0:
+        y.fill(val)
     p0, p1 = offset, offset+np.array(x.shape)
     if x.ndim == 1:
         y[p0[0]:p1[0]] = x
