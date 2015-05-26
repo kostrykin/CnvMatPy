@@ -6,22 +6,26 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
-def img_equals(actual, expected, max_avg_pxl_err=1e-3):
-    return np.linalg.norm(actual - expected, ord='fro') <= max_avg_pxl_err * np.prod(actual.shape)
+def img_equals(actual, expected, tolerance=1e-3):
+    return np.linalg.norm(actual - expected, ord='fro') <= tolerance * np.prod(actual.shape)
 
 class ImgCompTestCase(unittest.TestCase):
 
-    def assertEqualImg(self, actual, expected, hint='', interp='none', max_avg_pxl_err=1e-3):
-        ok = img_equals(actual, expected, max_avg_pxl_err)
+    def assertEqualImg(self, actual, expected, hint='', interp='none', tolerance=1e-3):
+        ok = img_equals(actual, expected, tolerance)
         if not ok:
             plt.figure('Failure').suptitle(hint, fontsize=20)
-            plt.subplot(1,2,1)
+            plt.subplot(1,3,1)
             plt.title('actual')
             plt.imshow(actual, 'gray', interpolation=interp)
             plt.colorbar()
-            plt.subplot(1,2,2)
+            plt.subplot(1,3,2)
             plt.title('expected')
             plt.imshow(expected, 'gray', interpolation=interp)
+            plt.colorbar()
+            plt.subplot(1,3,3)
+            plt.title('difference')
+            plt.imshow(np.abs(actual-expected), 'gray', interpolation=interp)
             plt.colorbar()
             plt.show()
         self.assertTrue(ok, '%s failed' % hint)
@@ -249,9 +253,9 @@ class TestCnvMat(ImgCompTestCase):
             Atpy_actual = (A.tp()*y).real
             Atpy_expected = A.toarray().T.dot(y.flatten()).reshape(sx).real
             self.assertEqualImg(Ax_actual, Ax_expected, '$Ax$ %s' % mode)
-            self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ %s' % mode)
+            self.assertEqualImg(A.tp().toarray().real, A.toarray().T.real, '$A^T$ %s' % mode, tolerance=1e-10)
             self.assertEqualImg(Atpy_actual, Atpy_expected, '$A^Ty$ %s' % mode)
-            self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ %s' % mode, max_avg_pxl_err=0)
+            self.assertEqualImg(A.tp().tp().toarray().real, A.toarray().real, '$A^{TT}$ %s' % mode, tolerance=0)
     
     def test_Xa_against_toarray(self):
         a, x, sa, sx = self.a, self.x, self.sa, self.sx
@@ -264,9 +268,9 @@ class TestCnvMat(ImgCompTestCase):
             Xtpy_actual = (X.tp()*y).real
             Xtpy_expected = X.toarray().T.dot(y.flatten()).reshape(sa).real
             self.assertEqualImg(Xa_actual, Xa_expected, '$Xa$ %s' % mode)
-            self.assertEqualImg(X.tp().toarray().real, X.toarray().T.real, '$X^T$ %s' % mode)
+            self.assertEqualImg(X.tp().toarray().real, X.toarray().T.real, '$X^T$ %s' % mode, tolerance=1e-10)
             self.assertEqualImg(Xtpy_actual, Xtpy_expected, '$X^Ty$ %s' % mode)
-            self.assertEqualImg(X.tp().tp().toarray().real, X.toarray().real, '$X^{TT}$ %s' % mode, max_avg_pxl_err=0)
+            self.assertEqualImg(X.tp().tp().toarray().real, X.toarray().real, '$X^{TT}$ %s' % mode, tolerance=0)
 
 if __name__ == '__main__':
     unittest.main()
