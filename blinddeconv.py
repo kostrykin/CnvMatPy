@@ -76,22 +76,28 @@ def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
         A = cnvmats.cnvmat(a, sx, mode)
         sy = A.sh
         y[i] = (A * x_true).real + noise_s2 * np.random.randn(*sy)
-    x0 = np.ones(sx)
-    x0[:sy[0], :sy[1]] = y[-1]
+    #x0 = cnvmats.pad(np.mean(np.dstack(y), axis=2), sx, offset=(sx[0]-sy[0], sx[1]-sy[1]), val=1)
+    #x0 = np.ones(sx) * 255
+    #x0 = np.mean(np.dstack(y), axis=2) # works for 'circ'
+    x0 = np.ones(sx) # works for all
     bd = BlindDeconv(sa, mode, itrs_count=itrs_count)
     (x,a) = bd.batch(x0, y, steps_count=steps_count)
     rms = [np.sqrt(sq(x_i-x_true).sum() / np.prod(x_i.shape)) for x_i in x]
+    plt.figure(figsize=(10,3))
     plt.subplot(1,3,1)
     plt.imshow(x0, 'gray')
     plt.title('$x_0$')
     plt.subplot(1,3,2)
     plt.imshow(x[-1], 'gray')
+    plt.clim(0, x[-1].max())
+    plt.colorbar(use_gridspec=True)
     plt.title('$x_{%d}$' % len(x))
     plt.subplot(1,3,3)
     plt.semilogx(np.array(range(len(rms)))+1, rms)
     plt.xlabel('iteration')
     plt.title('RMS')
     plt.grid()
+    plt.tight_layout()
     plt.show()
 
 run('lena.png', 33, 100, 2, (30,30), 10, 'circ')
