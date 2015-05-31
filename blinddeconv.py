@@ -2,6 +2,7 @@ import numpy as np
 import cnvmats
 import sys
 import cv2
+import math
 from matplotlib import pyplot as plt
 
 # based on
@@ -64,6 +65,17 @@ def non_neg(x):
 def sq(x):
     return x*x
 
+def blurmat(sa, sx, mode, gaussian=False):
+    sigma2 = sq(np.divide(sa[0], 3))
+    h_blur = np.ones(sa)
+    if gaussian:
+        p0 = np.divide(sa, 2)
+        for p in np.ndindex(sa):
+            p_dist = p - p0
+            h_blur[p] = math.exp(-np.dot(p_dist, p_dist) / (2*sigma2))
+    h_blur /= h_blur.sum()
+    return cnvmats.cnvmat(h_blur, sx, mode)
+
 def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
     x_true = cv2.imread(filename, 0)
     y = [None]*y_count
@@ -76,10 +88,8 @@ def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
         A = cnvmats.cnvmat(a, sx, mode)
         sy = A.sh
         y[i] = (A * x_true).real + noise_s2 * np.random.randn(*sy)
-    #x0 = cnvmats.pad(np.mean(np.dstack(y), axis=2), sx, offset=(sx[0]-sy[0], sx[1]-sy[1]), val=1)
-    #x0 = np.ones(sx) * 255
     #x0 = np.mean(np.dstack(y), axis=2) # works for 'circ'
-    x0 = np.ones(sx) # works for all
+    x0 = (blurmat(sa, sx, mode).tp() * np.mean(np.dstack(y), axis=2)).real
     bd = BlindDeconv(sa, mode, itrs_count=itrs_count)
     (x,a) = bd.batch(x0, y, steps_count=steps_count)
     rms = [np.sqrt(sq(x_i-x_true).sum() / np.prod(x_i.shape)) for x_i in x]
@@ -100,5 +110,6 @@ def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
     plt.tight_layout()
     plt.show()
 
-run('lena.png', 33, 100, 2, (30,30), 10, 'circ')
+#run('lena.png', 33, 100, 2, (30,30), 10, 'valid')
+run('lena.png', 33, 100, 2, (30,30), 10, 'valid')
 
