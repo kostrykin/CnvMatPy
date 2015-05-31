@@ -88,7 +88,6 @@ def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
         A = cnvmats.cnvmat(a, sx, mode)
         sy = A.sh
         y[i] = (A * x_true).real + noise_s2 * np.random.randn(*sy)
-    #x0 = np.mean(np.dstack(y), axis=2) # works for 'circ'
     x0 = (blurmat(sa, sx, mode).tp() * np.mean(np.dstack(y), axis=2)).real
     bd = BlindDeconv(sa, mode, itrs_count=itrs_count)
     (x,a) = bd.batch(x0, y, steps_count=steps_count)
@@ -99,7 +98,7 @@ def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
     plt.title('$x_0$')
     plt.subplot(1,3,2)
     plt.imshow(x[-1], 'gray')
-    plt.clim(0, x[-1].max())
+    plt.clim(0, 255)
     plt.colorbar(use_gridspec=True)
     plt.title('$x_{%d}$' % len(x))
     plt.subplot(1,3,3)
@@ -110,6 +109,5 @@ def run(filename, y_count, steps_count, itrs_count, sa, noise_s2, mode):
     plt.tight_layout()
     plt.show()
 
-#run('lena.png', 33, 100, 2, (30,30), 10, 'valid')
 run('lena.png', 33, 100, 2, (30,30), 10, 'valid')
 
