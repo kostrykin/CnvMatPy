@@ -64,7 +64,7 @@ class BlindDeconv:
         return x
 
 def blurmat(sa, sx, mode, gaussian=False):
-    sigma2 = sq(np.divide(sa[0], 3))
+    sigma2 = sq(sa[0] / 3.)
     h_blur = np.ones(sa)
     if gaussian:
         p0 = np.divide(sa, 2)
