@@ -3,6 +3,7 @@ import cnvmats
 import sys
 import cv2
 import math
+from numpy import square as sq
 from matplotlib import pyplot as plt
 
 # based on
@@ -54,16 +55,13 @@ class BlindDeconv:
         return (x,a)
 
     def mult_update(self, F, Ftp, g, h0):
-        return non_neg(np.divide( \
+        return self.non_neg(np.divide( \
             (Ftp*g).real + self.epsilon, \
             (Ftp*(F*h0)).real + self.epsilon))
 
-def non_neg(x):
-    x[x<0] = 0
-    return x
-
-def sq(x):
-    return x*x
+    def non_neg(self, x):
+        x[x<0] = 0
+        return x
 
 def blurmat(sa, sx, mode, gaussian=False):
     sigma2 = sq(np.divide(sa[0], 3))
