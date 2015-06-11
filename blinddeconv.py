@@ -55,11 +55,12 @@ class BlindDeconv:
         return (x,a)
 
     def mult_update(self, F, Ftp, g, h0):
-        return self.non_neg(np.divide( \
+        return BlindDeconv.non_neg(np.divide( \
             (Ftp*g).real + self.epsilon, \
             (Ftp*(F*h0)).real + self.epsilon))
 
-    def non_neg(self, x):
+    @staticmethod
+    def non_neg(x):
         x[x<0] = 0
         return x
 
