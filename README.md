@@ -7,11 +7,12 @@ The matrix representing objects are instantiated by the `cnvmats.cnvmat` functio
 ```python
 import numpy as np
 import cv2
+from cnvmats import cnvmat
 
 sa = (30,30)
 x = cv2.imread('lena.png', 0)
 a = np.ones(sa) / np.prod(sa)
-A = cnvmats.cnvmat(a, x.shape, 'valid')
+A = cnvmat(a, x.shape, 'valid')
 y = (A*x).real
 ```
 
