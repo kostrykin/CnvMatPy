@@ -1,8 +1,10 @@
 # cnvmats.py
 
-This repository contains the `cnvmats` Python 2.7 module. It provides a few classes, whose instances represent convolution and/or correlation matrices, like ![A](http://quicklatex.com/cache3/ql_56db631243bb90a9551347ff54d9916b_l3.png) and ![X](http://quicklatex.com/cache3/ql_70c8395e6ecd291a1e7887bd5eef6e31_l3.png) in ![Ax = Xa = a*x](http://quicklatex.com/cache3/ql_5a5bb1356fc622887312a4e7c4e8bfae_l3.png), respectively. Besides of multiplication with numpy arrays, the classes of ![A](http://quicklatex.com/cache3/ql_56db631243bb90a9551347ff54d9916b_l3.png) and ![X](http://quicklatex.com/cache3/ql_70c8395e6ecd291a1e7887bd5eef6e31_l3.png) support transposition using their `tp` method. The convolution is implemented in frequency domain.
+This repository contains the `cnvmats` Python 2.7 module. It provides a few classes, whose instances represent convolution and/or correlation matrices, like ![A](http://quicklatex.com/cache3/ql_56db631243bb90a9551347ff54d9916b_l3.png) and ![X](http://quicklatex.com/cache3/ql_70c8395e6ecd291a1e7887bd5eef6e31_l3.png) in ![Ax = Xa = a*x](http://quicklatex.com/cache3/ql_5a5bb1356fc622887312a4e7c4e8bfae_l3.png), respectively. Besides of multiplication with numpy arrays, the classes of ![A](http://quicklatex.com/cache3/ql_56db631243bb90a9551347ff54d9916b_l3.png) and ![X](http://quicklatex.com/cache3/ql_70c8395e6ecd291a1e7887bd5eef6e31_l3.png) support transposition using their `tp` method.
 
-The matrix representing objects are instantiated by the `cnvmats.cnvmat` function. This function has a `mode` argument that can be set to either `valid`, `full` or `circ`. Here is a simple example that loads an image and applies a box-filter:
+The matrix representing objects are instantiated by the `cnvmats.cnvmat` function. This function has a `mode` argument that can be set to either `valid`, `full` or `circ`. The convolution is implemented in frequency domain. The point is that the matrix that `cnvmats.cnvmat` returns **never actually computes the whole matrix**, unless it is told so to do using its `toarray` method.
+
+Here is a simple example that loads an image and applies a box-filter:
 
 ```python
 import numpy as np
