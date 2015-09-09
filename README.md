@@ -9,7 +9,7 @@ Here is a simple example that loads an image and applies a box-filter:
 ```python
 import numpy as np
 import cv2
-from cnvmats import cnvmat
+import cnvmats
 
 sa = (30,30)
 x = cv2.imread('lena.png', 0)

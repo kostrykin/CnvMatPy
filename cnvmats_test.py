@@ -272,5 +272,42 @@ class TestCnvMat(ImgCompTestCase):
             self.assertEqualImg(Xtpy_actual, Xtpy_expected, '$X^Ty$ %s' % mode)
             self.assertEqualImg(X.tp().tp().toarray().real, X.toarray().real, '$X^{TT}$ %s' % mode, tolerance=0)
 
+class TestCnvmatsTp(unittest.TestCase):
+    
+    def test_circ_Ax(self):
+        sa, sx = (3,3), (7,7)
+        a = np.random.random(sa)
+        Atp = cnvmats.cnvmat(a, sx, 'circ').tp()
+        Atp2 = cnvmats.cnvmat_tp(a, Atp.sg, 'circ')
+        self.assertEquals(Atp, Atp2)
+    
+    def test_valid_Ax(self):
+        sa, sx = (3,3), (7,7)
+        a = np.random.random(sa)
+        Atp = cnvmats.cnvmat(a, sx, 'valid').tp()
+        Atp2 = cnvmats.cnvmat_tp(a, Atp.sg, 'valid')
+        self.assertEquals(Atp, Atp2)
+    
+    def test_valid_Xa(self):
+        sa, sx = (3,3), (7,7)
+        x = np.random.random(sx)
+        Xtp = cnvmats.cnvmat(x, sa, 'valid').tp()
+        Xtp2 = cnvmats.cnvmat_tp(x, Xtp.sg, 'valid')
+        self.assertEquals(Xtp, Xtp2)
+    
+    def test_full_Ax(self):
+        sa, sx = (3,3), (7,7)
+        a = np.random.random(sa)
+        Atp = cnvmats.cnvmat(a, sx, 'full').tp()
+        Atp2 = cnvmats.cnvmat_tp(a, Atp.sg, 'full')
+        self.assertEquals(Atp, Atp2)
+    
+    def test_full_Xa(self):
+        sa, sx = (3,3), (7,7)
+        x = np.random.random(sx)
+        Xtp = cnvmats.cnvmat(x, sa, 'full').tp()
+        Xtp2 = cnvmats.cnvmat_tp(x, Xtp.sg, 'full')
+        self.assertEquals(Xtp, Xtp2)
+
 if __name__ == '__main__':
     unittest.main()
