@@ -3,7 +3,7 @@
 import numpy as np
 
 def pad(x, sy, offset=None, val=0):
-    """Returns copy of 'x' that is 'val'-padded to 'sy' size."""
+    """Returns copy of `x` that is `val`-padded to `sy` size."""
     
     sy = np.array(sy)
     offset = np.array(offset) if offset is not None else np.zeros(sy.size)
