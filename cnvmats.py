@@ -174,7 +174,7 @@ class ValidMat(CnvMat):
 
     def __mul__(self, g_spat):
         h_circ = self.circ * g_spat
-        offset = np.add(self.sf if self.sf <= self.sg else self.sg, -1)
+        offset = np.subtract(h_circ.shape, self.sh)
         h_valid = unpad(h_circ, self.sh, offset)
         return h_valid
 
