@@ -150,7 +150,7 @@ class TestCircMat(ImgCompTestCase):
         y = (X*a).real
         y_expected = cv2.imread('lena-box30-circ.png', 0)
         self.assertEqualImg(y, y_expected, '$Xa$ circ', tolerance=1.1)
-        
+
 class TestValidMat(ImgCompTestCase):
     
     def test_shapes_Ax(self):
@@ -271,6 +271,15 @@ class TestCnvMat(ImgCompTestCase):
             self.assertEqualImg(X.tp().toarray().real, X.toarray().T.real, '$X^T$ %s' % mode)
             self.assertEqualImg(Xtpy_actual, Xtpy_expected, '$X^Ty$ %s' % mode)
             self.assertEqualImg(X.tp().tp().toarray().real, X.toarray().real, '$X^{TT}$ %s' % mode, tolerance=0)
+
+    def test_XtpX(self):
+        sa = (30,30)
+        sx = (64,64)
+        x = np.random.randn(*sx)
+        for mode in self.modes:
+            X = cnvmats.cnvmat(x, sa, mode)
+            XtpX = X.T.dot(X)
+            self.assertEqual(XtpX.shape, (np.prod(X.sg), np.prod(X.sg)))
 
 class TestCnvmatsTp(unittest.TestCase):
     

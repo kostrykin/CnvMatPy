@@ -2,6 +2,8 @@
 
 import numpy as np
 
+SHAPE_MISMATCH = 'shape mismatch'
+
 def pad(x, sy, offset=None, val=0):
     """Returns copy of `x` that is `val`-padded to `sy` size."""
     
@@ -85,34 +87,61 @@ def cnvmat_tp(f_spat, sh, mode):
         elif np.all(sh <= sf):
             sg = tuple(sf - sh + 1)
         else:
-            raise ValueError('shape mismatch')
+            raise ValueError(SHAPE_MISMATCH)
     elif mode == 'full':
         if np.all(sh >= sf):
             sg = tuple(sh - sf + 1)
         elif np.all(sh <= sf):
             sg = tuple(sf - sh + 1)
         else:
-            raise ValueError('shape mismatch')
+            raise ValueError(SHAPE_MISMATCH)
     else:
         raise ValueError('unknown mode: "%s"' % mode)
     return cnvmat(f_spat, sg, mode).tp()
         
 def check_shape(actual, expected):
     if actual != expected:
-        msg = 'shape mismatch, %s but expected %s' % (str(actual), str(expected))
+        msg = '%s, %s but expected %s' % (SHAPE_MISMATCH, str(actual), str(expected))
         raise ValueError(msg)
 
 class CnvMat:
     """Base class of objects that represent convolution/correlation matrices.
     """
+
     def toarray(self):
-        array = np.zeros((np.prod(self.sh), np.prod(self.sg)), 'complex')
+        array = np.zeros(self.shape, 'complex')
         g = np.zeros(self.sg)
         for k in range(np.prod(g.shape)):
             g.flat[k] = 1
             array[:,k] = (self * g).flatten()
             g.flat[k] = 0
         return array
+
+    @property
+    def shape(self):
+        return (np.prod(self.sh), np.prod(self.sg))
+
+    def dot(self, rarg):
+        if isinstance(rarg, CnvMat):
+            rarg_array = rarg.toarray()
+            return self.dot(rarg_array)
+        elif isinstance(rarg, np.ndarray):
+            if rarg.shape == self.sg:
+                return self * rarg
+            else:
+                if rarg.shape[0] == np.prod(self.sg):
+                    result = np.zeros((self.shape[0], rarg.shape[1]), rarg.dtype)
+                    for i in range(result.shape[1]):
+                        result[:,i] = (self * rarg[:,i].reshape(self.sg)).flatten()
+                    return result
+                else:
+                    raise ValueError(SHAPE_MISMATCH)
+        else:
+            raise ValueError('unsupported argument type')
+
+    @property
+    def T(self):
+        return self.tp()
 
 class CircMat(CnvMat):
     """Represents matrix that performs *circular* convolution.
@@ -127,7 +156,7 @@ class CircMat(CnvMat):
         elif np.all(np.array(self.sf) >= np.array(sg)):
             self.f_freq = np.fft.fft2(f_spat)
         else:
-            raise ValueError('shape mismatch')
+            raise ValueError(SHAPE_MISMATCH)
         
     def __mul__(self, g_spat):
         check_shape(g_spat.shape, self.sg)
@@ -170,7 +199,7 @@ class ValidMat(CnvMat):
         elif np.all(sf >= sg):
             self.sh = tuple(sf-sg+1)
         else:
-            raise ValueError('shape mismatch')
+            raise ValueError(SHAPE_MISMATCH)
 
     def __mul__(self, g_spat):
         h_circ = self.circ * g_spat
@@ -210,7 +239,7 @@ class FullMat(CnvMat):
             f_spat = pad(f_spat, self.sh)
             circ_sg = self.sg
         else:
-            raise ValueError('shape mismatch')
+            raise ValueError(SHAPE_MISMATCH)
         self.circ = CircMat(f_spat, circ_sg)
 
     def __mul__(self, g_spat):
