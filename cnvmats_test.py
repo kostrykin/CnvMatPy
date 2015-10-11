@@ -318,5 +318,16 @@ class TestCnvmatsTp(unittest.TestCase):
         Xtp2 = cnvmats.cnvmat_tp(x, Xtp.sg, 'full')
         self.assertEquals(Xtp, Xtp2)
 
+    def test_valid_XTy_equals_full_YTx(self):
+        sa, sx = (3,3), (7,7)
+        x = np.random.random(sx)
+        X = cnvmats.cnvmat(x, sa, 'valid')
+        sy = X.sh
+        y = np.random.random(sy)
+        Y = cnvmats.cnvmat(y, sa, 'full')
+        XTy = X.T.dot(y).real
+        YTx = Y.T.dot(x).real
+        self.assertEquals(np.linalg.norm(XTy - YTx), 0)
+
 if __name__ == '__main__':
     unittest.main()
