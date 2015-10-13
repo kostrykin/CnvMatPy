@@ -281,6 +281,31 @@ class TestCnvMat(ImgCompTestCase):
             XtpX = X.T.dot(X)
             self.assertEqual(XtpX.shape, (np.prod(X.sg), np.prod(X.sg)))
 
+    def test_Ax_equals_Xa(self):
+        sa = (30,30)
+        sx = (64,64)
+        x = np.random.random(sx)
+        a = np.random.random(sa)
+        for mode in self.modes:
+            X = cnvmats.cnvmat(x, sa, mode)
+            A = cnvmats.cnvmat(a, sx, mode)
+            self.assertEqual(np.linalg.norm((X*a).real - (A*x).real), 0)
+
+    def test_valid_XTy_equals_full_YTx(self):
+        sa, sx = (3,3), (7,7)
+        x = np.random.random(sx)
+        X = cnvmats.cnvmat(x, sa, 'valid')
+        sy = X.sh
+        y = np.random.random(sy)
+        Y = cnvmats.cnvmat(y, sa, 'full')
+        XTy = X.T.dot(y).real
+        YTx = Y.T.dot(x).real
+        XTy_expected = X.toarray().real.T.dot(y.flatten()).reshape(sa)
+        YTx_expected = Y.toarray().real.T.dot(x.flatten()).reshape(sa)
+        self.assertAlmostEquals(np.linalg.norm(YTx_expected - cnvmats.flip(XTy_expected)), 0)
+        self.assertAlmostEquals(np.linalg.norm(XTy - XTy_expected), 0)
+        self.assertAlmostEquals(np.linalg.norm(YTx - YTx_expected), 0)
+
 class TestCnvmatsTp(unittest.TestCase):
     
     def test_circ_Ax(self):
@@ -317,17 +342,6 @@ class TestCnvmatsTp(unittest.TestCase):
         Xtp = cnvmats.cnvmat(x, sa, 'full').tp()
         Xtp2 = cnvmats.cnvmat_tp(x, Xtp.sg, 'full')
         self.assertEquals(Xtp, Xtp2)
-
-    def test_valid_XTy_equals_full_YTx(self):
-        sa, sx = (3,3), (7,7)
-        x = np.random.random(sx)
-        X = cnvmats.cnvmat(x, sa, 'valid')
-        sy = X.sh
-        y = np.random.random(sy)
-        Y = cnvmats.cnvmat(y, sa, 'full')
-        XTy = X.T.dot(y).real
-        YTx = Y.T.dot(x).real
-        self.assertEquals(np.linalg.norm(XTy - YTx), 0)
 
 if __name__ == '__main__':
     unittest.main()
