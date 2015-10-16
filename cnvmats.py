@@ -152,20 +152,20 @@ class CircMat(CnvMat):
         self.sg = sg
         self.sh = sh if sh is not None else max(self.sf, sg)
         if np.all(np.array(self.sf) <= np.array(sg)):
-            self.f_freq = np.fft.fft2(pad(f_spat, sg))
+            self.f_freq = np.fft.fftn(pad(f_spat, sg))
         elif np.all(np.array(self.sf) >= np.array(sg)):
-            self.f_freq = np.fft.fft2(f_spat)
+            self.f_freq = np.fft.fftn(f_spat)
         else:
             raise ValueError(SHAPE_MISMATCH)
         
     def __mul__(self, g_spat):
         check_shape(g_spat.shape, self.sg)
         if self.sf <= self.sg:
-            g_freq = np.fft.fft2(g_spat)
+            g_freq = np.fft.fftn(g_spat)
         else:
-            g_freq = np.fft.fft2(pad(g_spat, self.sf))
+            g_freq = np.fft.fftn(pad(g_spat, self.sf))
         h_freq = np.multiply(self.f_freq, g_freq)
-        h_spat = unpad(np.fft.ifft2(h_freq), self.sh)
+        h_spat = unpad(np.fft.ifftn(h_freq), self.sh)
         return h_spat
         
     def tp(self):
