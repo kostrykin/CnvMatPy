@@ -17,7 +17,7 @@ def check_shape(actual, expected):
 
 
 class Identity:
-    """
+    """Represents the identity matrix.
     """
 
     def dot(self, g): return g
@@ -29,7 +29,7 @@ I = Identity()
 
 
 class PadMat:
-    """
+    """Represents matrix that does padding or unpadding.
     """
 
     UP = 'up'
@@ -92,7 +92,7 @@ class PadMat:
 
 
 class CnvMat:
-    """
+    """Represents a generic matrix that does convolution or correlation.
     """
 
     dtype = 'float64'
@@ -159,7 +159,7 @@ class CnvMat:
 
 
 def cnvmat(f_spat, sg, mode):
-    """
+    """Constructs matrix that convolves `f_spat` with arguments from `sg` shape.
     """
 
     sg = sg if isinstance(sg, np.ndarray) else np.array(sg)
