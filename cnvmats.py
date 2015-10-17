@@ -2,114 +2,111 @@
 
 import numpy as np
 
+
+CIRC  = 'circ'
+VALID = 'valid'
+FULL  = 'full'
+
+
 SHAPE_MISMATCH = 'shape mismatch'
 
-def pad(x, sy, offset=None, val=0):
-    """Returns copy of `x` that is `val`-padded to `sy` size."""
-    
-    sy = np.array(sy)
-    offset = np.array(offset) if offset is not None else np.zeros(sy.size)
-    assert x.ndim == np.size(sy), 'ndim mismatch: %d == %d' % (x.ndim, np.size(sy))
-    assert np.all(np.array(x.shape) <= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
-    assert x.ndim == offset.size, 'ndim mismatch: %d == %d' % (x.ndim, offset.size)
-    y = np.zeros(sy, x.dtype)
-    if val != 0:
-        y.fill(val)
-    p0, p1 = offset, offset+np.array(x.shape)
-    if x.ndim == 1:
-        y[p0[0]:p1[0]] = x
-    elif x.ndim == 2:
-        y[p0[0]:p1[0], p0[1]:p1[1]] = x
-    else:
-        raise ValueError('ndim must be 1 or 2')
-    return y
-    
-def unpad(x, sy, offset=None):
-    """Returns copy of `x` that is cropped to `sx` size.
-    """
-    sy = np.array(sy)
-    offset = np.array(offset) if offset is not None else np.zeros(sy.size)
-    assert x.ndim == sy.size, 'ndim mismatch: %d == %d' % (x.ndim, sy.size)
-    assert np.all(np.array(x.shape) >= sy), 'invalid shapes: %s <= %s' % (str(x.shape), str(sy))
-    assert x.ndim == offset.size, 'ndim mismatch: %d == %d' % (x.ndim, offset.size)
-    p0, p1 = offset, offset+sy
-    if x.ndim == 1:
-        return x[p0[0]:p1[0]]
-    elif x.ndim == 2:
-        return x[p0[0]:p1[0], p0[1]:p1[1]]
-    else:
-        raise ValueError('ndim must be 1 or 2')
-    
-def flip(x):
-    """Returns copy of `x` flipped along each axis.
-    """ 
-    x_flipped_ud = np.flipud(x)
-    if x.ndim == 1:
-        return x_flipped_ud
-    elif x.ndim == 2:
-        return np.fliplr(x_flipped_ud)
-    else:
-        raise ValueError('ndim must be 1 or 2')
-
-def circshift(x, shift):
-    """Rolls `x` by `shift` along each axis.
-    """
-    if isinstance(shift, tuple) or isinstance(shift, list):
-        assert x.ndim == len(shift), 'ndim mismatch: %d == %d' % (x.ndim, len(shift))
-    else:
-        shift = [shift]*x.ndim
-    for d in range(x.ndim):
-        x = np.roll(x, shift[d], axis=d)
-    return x
-
-def cnvmat(f_spat, sg, mode):
-    if mode == 'circ':
-        return CircMat(f_spat, sg)
-    elif mode == 'valid':
-        return ValidMat(f_spat, sg)
-    elif mode == 'full':
-        return FullMat(f_spat, sg)
-    else:
-        raise ValueError('unknown mode: "%s"' % mode)
-
-def cnvmat_tp(f_spat, sh, mode):
-    """Returns `F.tp()` where `F.mode == mode` and `F.sh == sh == F.tp().sg`.
-    """
-    sf = np.array(f_spat.shape)
-    sh = np.array(sh)
-    if mode == 'circ':
-        # NOTE: only `Ax` is supported here, but not `Xa`,
-        # because this would require more information that we haven't available
-        sg = tuple(sh)
-    elif mode == 'valid':
-        if np.all(sh >= sf):
-            sg = tuple(sf + sh - 1)
-        elif np.all(sh <= sf):
-            sg = tuple(sf - sh + 1)
-        else:
-            raise ValueError(SHAPE_MISMATCH)
-    elif mode == 'full':
-        if np.all(sh >= sf):
-            sg = tuple(sh - sf + 1)
-        elif np.all(sh <= sf):
-            sg = tuple(sf - sh + 1)
-        else:
-            raise ValueError(SHAPE_MISMATCH)
-    else:
-        raise ValueError('unknown mode: "%s"' % mode)
-    return cnvmat(f_spat, sg, mode).tp()
-        
 def check_shape(actual, expected):
-    if actual != expected:
+    if not np.all(actual == expected):
         msg = '%s, %s but expected %s' % (SHAPE_MISMATCH, str(actual), str(expected))
         raise ValueError(msg)
 
-class CnvMat:
-    """Base class of objects that represent convolution/correlation matrices.
+
+class Identity:
+    """
     """
 
-    def toarray(self):
-        array = np.zeros(self.shape, 'complex')
+    def dot(self, g): return g
+
+    @property
+    def T(self): return self
+
+I = Identity()
+
+
+class PadMat:
+    """
+    """
+
+    UP = 'up'
+    DOWN = 'down'
+    UNKNOWN_DIRECTION = 'unknown direction'
+    UNIMPLEMENTED_NDIM = 'not implemented for ndarray.ndim=%d'
+
+    def __init__(self, sfrom, sto, direction=UP):
+        self.sfrom = sfrom
+        self.sto = sto
+        self.direction = direction
+
+    def dot(self, g):
+        check_shape(g.shape, self.sfrom)
+        sfrom = np.array(self.sfrom)
+        if np.all(sfrom > self.sto):
+            return self.unpad(g, sfrom)
+        elif np.all(sfrom < self.sto):
+            return self.pad(g, sfrom)
+        else:
+            return g
+
+    @property
+    def T(self):
+        return PadMat(self.sto, self.sfrom, self.direction)
+
+    def pad(self, src, sfrom):
+        pad_with = self.sto - sfrom
+        if isinstance(pad_with, np.ndarray):
+            pad_with = pad_with[0]
+        if self.direction == PadMat.UP:
+            padding = (0, pad_with)
+        elif self.direction == PadMat.DOWN:
+            padding = (pad_with, 0)
+        else:
+            raise ValueError(UNKNOWN_DIRECTION)
+        return np.pad(src, padding, mode='constant')
+
+    def unpad(self, src, sfrom):
+        if self.direction == PadMat.UP:
+            if src.ndim == 1:
+                sto = self.sto[0] if isinstance(self.sto, np.ndarray) else self.sto
+                return src[:sto]
+            elif src.ndim == 2:
+                return src[:self.sto[0], :self.sto[1]]
+            else:
+                raise ValueError(UNIMPLEMENTED_NDIM % src.ndim)
+        elif self.direction == PadMat.DOWN:
+            offset = sfrom - self.sto
+            if src.ndim == 1:
+                if isinstance(pad_with, np.ndarray):
+                    offset = offset[0]
+                return src[offset:]
+            elif src.ndim == 2:
+                return src[offset[0]:, offset[1]:]
+            else:
+                raise ValueError(UNIMPLEMENTED_NDIM % src.ndim)
+        else:
+            raise ValueError(UNKNOWN_DIRECTION)
+
+
+class CnvMat:
+    """
+    """
+
+    dtype = 'float64'
+    UNSUPPORTED_ARGUMENT_TYPE = 'unsupported argument type'
+
+    def __init__(self, f_freq, sg, g_pad=I, h_unpad=I, T=None):
+        self.f_freq  = f_freq
+        self.sg      = sg
+        self.g_pad   = g_pad
+        self.h_unpad = h_unpad
+        self.T       = T or CnvMat(f_freq.conj(), self.sh, g_pad=h_unpad.T, h_unpad=g_pad.T, T=self)
+
+    def toarray(self, dtype=None):
+        array = np.zeros(self.shape, dtype or self.dtype)
         g = np.zeros(self.sg)
         for k in range(np.prod(g.shape)):
             g.flat[k] = 1
@@ -126,7 +123,7 @@ class CnvMat:
             rarg_array = rarg.toarray()
             return self.dot(rarg_array)
         elif isinstance(rarg, np.ndarray):
-            if rarg.shape == self.sg:
+            if np.all(rarg.shape == self.sg):
                 return self * rarg
             else:
                 if rarg.shape[0] == np.prod(self.sg):
@@ -137,127 +134,115 @@ class CnvMat:
                 else:
                     raise ValueError(SHAPE_MISMATCH)
         else:
-            raise ValueError('unsupported argument type')
+            raise ValueError(UNSUPPORTED_ARGUMENT_TYPE)
 
     @property
-    def T(self):
-        return self.tp()
+    def sh(self):
+        if isinstance(self.h_unpad, Identity):
+            return self.f_freq.shape
+        else:
+            return self.h_unpad.sto
 
-class CircMat(CnvMat):
-    """Represents matrix that performs *circular* convolution.
+    def __mul__(self, g):
+        check_shape(g.shape, self.sg)
+        g_padded = self.g_pad.dot(g)
+        g_freq = np.fft.fftn(g_padded)
+        check_shape(g_freq.shape, self.f_freq.shape)
+        h = np.fft.ifftn(g_freq * self.f_freq)
+        h = self.h_unpad.dot(h)
+        if self.dtype is None:
+            return h
+        else:
+            if not self.dtype.startswith('complex'):
+                h = h.real
+            return h.astype(self.dtype)
+
+
+def cnvmat(f_spat, sg, mode):
     """
-    def __init__(self, f_spat, sg, sh=None):
-        self.f_spat = f_spat
-        self.sf = f_spat.shape
-        self.sg = sg
-        self.sh = sh if sh is not None else max(self.sf, sg)
-        if np.all(np.array(self.sf) <= np.array(sg)):
-            self.f_freq = np.fft.fft2(pad(f_spat, sg))
-        elif np.all(np.array(self.sf) >= np.array(sg)):
-            self.f_freq = np.fft.fft2(f_spat)
+    """
+
+    sg = sg if isinstance(sg, np.ndarray) else np.array(sg)
+    sf = np.array(f_spat.shape)
+    if not np.all(sg <= sf) and not np.all(sg >= sf):
+        raise ValueError(SHAPE_MISMATCH)
+
+    kwargs = {}
+    if mode == CIRC:
+
+        if np.all(sf <= sg): # role: A
+            kwargs['f_pad'] = PadMat(sf, sg)
+            kwargs['g_pad'] = I
+
+        else: # role: X
+            kwargs['f_pad'] = I
+            kwargs['g_pad'] = PadMat(sg, sf)
+
+    elif mode == VALID:
+
+        if np.all(sf <= sg): #role A
+            kwargs['f_pad']   = PadMat(sf, sg)
+            kwargs['g_pad']   = I
+            kwargs['h_unpad'] = PadMat(sg, sg - sf + 1, direction=PadMat.DOWN)
+
+        else: # role: X
+            kwargs['f_pad']   = I
+            kwargs['g_pad']   = PadMat(sg, sf)
+            kwargs['h_unpad'] = PadMat(sf, sf - sg + 1, direction=PadMat.DOWN)
+
+    elif mode == FULL:
+        sh = sf + sg - 1
+        kwargs['f_pad'] = PadMat(sf, sh)
+        kwargs['g_pad'] = PadMat(sg, sh)
+
+    else:
+
+        raise ValueError('unknown mode: "%s"' % mode)
+
+    f_pad = kwargs.pop('f_pad')
+    f_freq = np.fft.fftn(f_pad.dot(f_spat))
+    mat = CnvMat(f_freq, sg, **kwargs)
+    mat.mode = mode
+    return mat
+
+
+UNSUPPORTED_MODE = 'unsupported mode: %s'
+
+def cnvmat_tp(f_spat, sh, mode):
+    """Returns `F.T` where `F.mode == mode` and `F.sh == sh == F.T.sg`.
+    """
+
+    sf = np.array(f_spat.shape)
+    sh = sh if isinstance(sh, np.ndarray) else np.array(sh)
+
+    if mode == CIRC:
+
+        # NOTE: we could implement this for `Ax` but not for `Xa`,
+        # because this would require more information that we haven't available
+
+        raise ValueError(UNSUPPORTED_MODE % mode)
+
+    elif mode == VALID:
+
+        if np.all(sh >= sf):
+            sg = sf + sh - 1
+        elif np.all(sh <= sf):
+            sg = sf - sh + 1
         else:
             raise ValueError(SHAPE_MISMATCH)
-        
-    def __mul__(self, g_spat):
-        check_shape(g_spat.shape, self.sg)
-        if self.sf <= self.sg:
-            g_freq = np.fft.fft2(g_spat)
-        else:
-            g_freq = np.fft.fft2(pad(g_spat, self.sf))
-        h_freq = np.multiply(self.f_freq, g_freq)
-        h_spat = unpad(np.fft.ifft2(h_freq), self.sh)
-        return h_spat
-        
-    def tp(self):
-        f_spat_padded = self.f_spat if self.sf >= self.sg else pad(self.f_spat, self.sg)
-        tp_f_spat = circshift(flip(f_spat_padded), +1)
-        tp_sg = self.sh
-        tp_sh = self.sg
-        return CircMat(tp_f_spat, tp_sg, tp_sh)
-    
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) \
-            and np.all(self.f_spat == other.f_spat) \
-            and self.sg == other.sg \
-            and self.sh == other.sh \
-            and np.all(self.f_freq == other.f_freq)
-    
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
-class ValidMat(CnvMat):
-    """Represents matrix that performs *valid* convolution.
-    """
-    def __init__(self, f_spat, sg):
-        self.circ = CircMat(f_spat, sg)
-        self.sf = f_spat.shape
-        self.sg = sg
-        sf = np.array(self.sf)
-        sg = np.array(sg)
-        if np.all(sf <= sg):
-            self.sh = tuple(sg-sf+1)
-        elif np.all(sf >= sg):
-            self.sh = tuple(sf-sg+1)
+    elif mode == FULL:
+
+        if np.all(sh >= sf):
+            sg = sh - sf + 1
+        elif np.all(sh <= sf):
+            sg = sf - sh + 1
         else:
             raise ValueError(SHAPE_MISMATCH)
 
-    def __mul__(self, g_spat):
-        h_circ = self.circ * g_spat
-        offset = np.subtract(h_circ.shape, self.sh)
-        h_valid = unpad(h_circ, self.sh, offset)
-        return h_valid
+    else:
 
-    def tp(self):
-        tp_f_spat = flip(self.circ.f_spat)
-        if self.sf <= self.sg:
-            return FullMat(tp_f_spat, self.sh)
-        else:
-            return ValidMat(tp_f_spat, self.sh)
+        raise ValueError('unknown mode: "%s"' % mode)
 
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) \
-            and self.circ == other.circ \
-            and self.sf == other.sf \
-            and self.sg == other.sg \
-            and self.sh == other.sh
+    return cnvmat(f_spat, sg, mode).T
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-class FullMat(CnvMat):
-    """Represents matrix that performs *full* convolution.
-    """
-    def __init__(self, f_spat, sg):
-        self.sf = f_spat.shape
-        self.sg = sg
-        sf = np.array(self.sf)
-        sg = np.array(sg)
-        self.sh = tuple(sf+sg-1)
-        if np.all(sf <= sg):
-            circ_sg = self.sh
-        elif np.all(sf >= sg):
-            f_spat = pad(f_spat, self.sh)
-            circ_sg = self.sg
-        else:
-            raise ValueError(SHAPE_MISMATCH)
-        self.circ = CircMat(f_spat, circ_sg)
-
-    def __mul__(self, g_spat):
-        check_shape(g_spat.shape, self.sg)
-        if self.sg != self.circ.sg:
-            g_spat = pad(g_spat, self.circ.sg)
-        return self.circ * g_spat
-
-    def tp(self):
-        tp_f_spat = flip(unpad(self.circ.f_spat, self.sf))
-        return ValidMat(tp_f_spat, self.sh)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) \
-            and self.circ == other.circ \
-            and self.sf == other.sf \
-            and self.sg == other.sg \
-            and self.sh == other.sh
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
