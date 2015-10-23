@@ -80,7 +80,7 @@ class PadMat:
         elif self.direction == PadMat.DOWN:
             offset = sfrom - self.sto
             if src.ndim == 1:
-                if isinstance(pad_with, np.ndarray):
+                if isinstance(offset, np.ndarray):
                     offset = offset[0]
                 return src[offset:]
             elif src.ndim == 2:
