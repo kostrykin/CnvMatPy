@@ -109,6 +109,16 @@ class TestCnvMat(ImgCompTestCase):
             expected = A.toarray().T
             self.assertAlmostEqual(np.linalg.norm(A.T.toarray() - expected), 0)
 
+    def test_dot_mat(self):
+        sx = 7
+        sa = 3
+        a = np.random.random((sa,))
+        X = np.random.random((sx, 2*sx))
+        for mode in self.modes:
+            A = cnvmats.cnvmat(a, sx, mode)
+            expected = A.toarray().dot(X)
+            self.assertAlmostEqual(np.linalg.norm(A.dot(X) - expected), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,11 +9,24 @@ FULL  = 'full'
 
 
 SHAPE_MISMATCH = 'shape mismatch'
+MALFORMED_SHAPE = 'malformed shape'
 
 def check_shape(actual, expected):
     if not np.all(actual == expected):
         msg = '%s, %s but expected %s' % (SHAPE_MISMATCH, str(actual), str(expected))
         raise ValueError(msg)
+
+def shape_equal(shape1, shape2):
+    def normalize(shape):
+        if np.isscalar(shape): # scalars
+            return shape
+        elif isinstance(shape, np.ndarray) and shape.size == 1: # arrays
+            return shape.flatten()[0]
+        elif len(shape) == 1: # tuples and lists
+            return shape[0]
+        else: # anything else
+            return shape
+    return np.array_equal(normalize(shape1), normalize(shape2))
 
 
 class Identity:
@@ -80,7 +93,7 @@ class PadMat:
         elif self.direction == PadMat.DOWN:
             offset = sfrom - self.sto
             if src.ndim == 1:
-                if isinstance(pad_with, np.ndarray):
+                if isinstance(offset, np.ndarray):
                     offset = offset[0]
                 return src[offset:]
             elif src.ndim == 2:
@@ -123,7 +136,7 @@ class CnvMat:
             rarg_array = rarg.toarray()
             return self.dot(rarg_array)
         elif isinstance(rarg, np.ndarray):
-            if np.all(rarg.shape == self.sg):
+            if shape_equal(rarg.shape, self.sg):
                 return self * rarg
             else:
                 if rarg.shape[0] == np.prod(self.sg):
