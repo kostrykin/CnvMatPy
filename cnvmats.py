@@ -21,9 +21,9 @@ def shape_equal(shape1, shape2):
         if np.isscalar(shape): # scalars
             return shape
         elif isinstance(shape, np.ndarray) and shape.size == 1: # arrays
-            return shape.flatten()[0]
+            return shape.flat[0]
         elif len(shape) == 1: # tuples and lists
-            return shape[0]
+            return shape.flat[0]
         else: # anything else
             return shape
     return np.array_equal(normalize(shape1), normalize(shape2))
@@ -72,7 +72,7 @@ class PadMat:
     def pad(self, src, sfrom):
         pad_with = self.sto - sfrom
         if isinstance(pad_with, np.ndarray):
-            pad_with = pad_with[0]
+            pad_with = pad_with.flat[0]
         if self.direction == PadMat.UP:
             padding = (0, pad_with)
         elif self.direction == PadMat.DOWN:
@@ -84,7 +84,7 @@ class PadMat:
     def unpad(self, src, sfrom):
         if self.direction == PadMat.UP:
             if src.ndim == 1:
-                sto = self.sto[0] if isinstance(self.sto, np.ndarray) else self.sto
+                sto = self.sto.flat[0] if isinstance(self.sto, np.ndarray) else self.sto
                 return src[:sto]
             elif src.ndim == 2:
                 return src[:self.sto[0], :self.sto[1]]
@@ -94,7 +94,7 @@ class PadMat:
             offset = sfrom - self.sto
             if src.ndim == 1:
                 if isinstance(offset, np.ndarray):
-                    offset = offset[0]
+                    offset = offset.flat[0]
                 return src[offset:]
             elif src.ndim == 2:
                 return src[offset[0]:, offset[1]:]
