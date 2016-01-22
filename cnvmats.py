@@ -23,7 +23,7 @@ def shape_equal(shape1, shape2):
         elif isinstance(shape, np.ndarray) and shape.size == 1: # arrays
             return shape.flat[0]
         elif len(shape) == 1: # tuples and lists
-            return shape.flat[0]
+            return shape[0]
         else: # anything else
             return shape
     return np.array_equal(normalize(shape1), normalize(shape2))
