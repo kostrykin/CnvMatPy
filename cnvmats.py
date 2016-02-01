@@ -116,7 +116,8 @@ class CnvMat:
         self.sg      = sg
         self.g_pad   = g_pad
         self.h_unpad = h_unpad
-        self.T       = T or CnvMat(f_freq.conj(), self.sh, g_pad=h_unpad.T, h_unpad=g_pad.T, T=self)
+        self.T       = T or CnvMat(f_freq.conj(), self.sh, g_pad=h_unpad.T, \
+                                   h_unpad=g_pad.T, T=self)
 
     def toarray(self, dtype=None):
         array = np.zeros(self.shape, dtype or self.dtype)
