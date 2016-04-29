@@ -72,13 +72,15 @@ class PadMat:
     def pad(self, src, sfrom):
         pad_with = self.sto - sfrom
         if isinstance(pad_with, np.ndarray):
-            pad_with = pad_with.flat[0]
+            pad_with = tuple(pad_with.flatten())
+        z = tuple(np.zeros_like(pad_with))
         if self.direction == PadMat.UP:
-            padding = (0, pad_with)
+            padding = (z, pad_with)
         elif self.direction == PadMat.DOWN:
-            padding = (pad_with, 0)
+            padding = (pad_with, z)
         else:
             raise ValueError(UNKNOWN_DIRECTION)
+        padding = np.array(padding).T.tolist()
         return np.pad(src, padding, mode='constant')
 
     def unpad(self, src, sfrom):
